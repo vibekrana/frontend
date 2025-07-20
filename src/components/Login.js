@@ -99,6 +99,10 @@ const Login = ({ onLogin }) => {
           <button type="submit" className="post-button" disabled={isLoading}>
             {isLoading ? <div className="spinner"></div> : 'Login'}
           </button>
+
+<p style={{ marginTop: "1rem", color: "#22d3ee" }}>
+  New user? <a href="/register" style={{ color: "#facc15", fontWeight: "bold" }}>Register here</a>
+</p>
         </form>
       </div>
     </div>

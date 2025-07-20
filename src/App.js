@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 import Login from './components/Login';
 import ContentCreation from './components/ContentCreation';
+import Register from './components/Register';
 
 const App = () => {
   const [user, setUser] = useState(null);
@@ -37,6 +38,11 @@ const App = () => {
             )
           }
         />
+          <Route
+            path="/register"
+            element={user ? <Navigate to="/content" /> : <Register onLogin={handleLogin} />}
+          />
+
         <Route
           path="/content"
           element={
