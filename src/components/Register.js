@@ -114,7 +114,8 @@ const Register = () => {
             name: formData.name.trim(),
             email: formData.email.toLowerCase().trim(),
             username: formData.username.trim(),
-            password: formData.password
+            password: formData.password,
+            confirmPassword: formData.confirmPassword
           }),
         }
       );
