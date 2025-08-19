@@ -3,12 +3,18 @@ import './Login.css';
 import { useNavigate } from 'react-router-dom';
 
 const Register = () => {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    username: '',
+    password: '',
+    confirmPassword: ''
+  });
   const [success, setSuccess] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
+  const [validationErrors, setValidationErrors] = useState({});
   const navigate = useNavigate();
 
   // Load saved theme
@@ -23,32 +29,120 @@ const Register = () => {
     localStorage.setItem('theme', newMode ? 'dark' : 'light');
   };
 
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+    
+    // Clear validation error for this field when user starts typing
+    if (validationErrors[name]) {
+      setValidationErrors(prev => ({
+        ...prev,
+        [name]: ''
+      }));
+    }
+  };
+
+  const validateForm = () => {
+    const errors = {};
+
+    // Name validation
+    if (!formData.name.trim()) {
+      errors.name = 'Name is required';
+    } else if (formData.name.trim().length < 2) {
+      errors.name = 'Name must be at least 2 characters';
+    }
+
+    // Email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!formData.email.trim()) {
+      errors.email = 'Email is required';
+    } else if (!emailRegex.test(formData.email)) {
+      errors.email = 'Please enter a valid email address';
+    }
+
+    // Username validation
+    if (!formData.username.trim()) {
+      errors.username = 'Username is required';
+    } else if (formData.username.trim().length < 3) {
+      errors.username = 'Username must be at least 3 characters';
+    } else if (!/^[a-zA-Z0-9_]+$/.test(formData.username)) {
+      errors.username = 'Username can only contain letters, numbers, and underscores';
+    }
+
+    // Password validation
+    if (!formData.password) {
+      errors.password = 'Password is required';
+    } else if (formData.password.length < 6) {
+      errors.password = 'Password must be at least 6 characters';
+    }
+
+    // Confirm password validation
+    if (!formData.confirmPassword) {
+      errors.confirmPassword = 'Please confirm your password';
+    } else if (formData.password !== formData.confirmPassword) {
+      errors.confirmPassword = 'Passwords do not match';
+    }
+
+    return errors;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setSuccess('');
+    
+    // Validate form
+    const errors = validateForm();
+    if (Object.keys(errors).length > 0) {
+      setValidationErrors(errors);
+      return;
+    }
+
+    setValidationErrors({});
     setIsLoading(true);
+
     try {
       const response = await fetch(
         'https://4fqbpp1yya.execute-api.ap-south-1.amazonaws.com/prod/user/register',
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username, password }),
+          body: JSON.stringify({
+            name: formData.name.trim(),
+            email: formData.email.toLowerCase().trim(),
+            username: formData.username.trim(),
+            password: formData.password
+          }),
         }
       );
 
       const data = await response.json();
       if (response.ok) {
         setSuccess('✅ Registration successful! Redirecting to login...');
+        setFormData({
+          name: '',
+          email: '',
+          username: '',
+          password: '',
+          confirmPassword: ''
+        });
         setTimeout(() => {
           navigate('/login');
         }, 1500);
       } else {
-        setError(data.error || 'Registration failed');
+        if (data.error && data.error.includes('username')) {
+          setValidationErrors({ username: 'Username already exists. Please choose another.' });
+        } else if (data.error && data.error.includes('email')) {
+          setValidationErrors({ email: 'Email already registered. Please use another email.' });
+        } else {
+          setError(data.error || 'Registration failed');
+        }
       }
     } catch (err) {
-      setError('Something went wrong. Please try again.');
+      setError('Network error. Please check your connection and try again.');
     } finally {
       setIsLoading(false);
     }
@@ -73,29 +167,79 @@ const Register = () => {
       <div className="login-box">
         <img src="/logo1922.png" alt="Logo" className="login-logo" />
         <h1 className="login-header">Marketing Bot</h1>
-        <p className="login-subheader">Register</p>
+        <p className="login-subheader">Create Your Account</p>
 
         <form onSubmit={handleSubmit}>
           <div className="form-group">
-            <label>Username</label>
+            <label>Full Name *</label>
             <input
               type="text"
-              placeholder="Enter username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              name="name"
+              placeholder="Enter your full name"
+              value={formData.name}
+              onChange={handleInputChange}
+              className={validationErrors.name ? 'error' : ''}
               required
             />
+            {validationErrors.name && <span className="field-error">{validationErrors.name}</span>}
           </div>
 
           <div className="form-group">
-            <label>Password</label>
+            <label>Email Address *</label>
             <input
-              type="password"
-              placeholder="Enter password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              type="email"
+              name="email"
+              placeholder="Enter your email address"
+              value={formData.email}
+              onChange={handleInputChange}
+              className={validationErrors.email ? 'error' : ''}
               required
             />
+            {validationErrors.email && <span className="field-error">{validationErrors.email}</span>}
+          </div>
+
+          <div className="form-group">
+            <label>Username *</label>
+            <input
+              type="text"
+              name="username"
+              placeholder="Choose a unique username"
+              value={formData.username}
+              onChange={handleInputChange}
+              className={validationErrors.username ? 'error' : ''}
+              required
+            />
+            {validationErrors.username && <span className="field-error">{validationErrors.username}</span>}
+            <small className="field-hint">Letters, numbers, and underscores only. Min 3 characters.</small>
+          </div>
+
+          <div className="form-group">
+            <label>Password *</label>
+            <input
+              type="password"
+              name="password"
+              placeholder="Create a strong password"
+              value={formData.password}
+              onChange={handleInputChange}
+              className={validationErrors.password ? 'error' : ''}
+              required
+            />
+            {validationErrors.password && <span className="field-error">{validationErrors.password}</span>}
+            <small className="field-hint">Minimum 6 characters required.</small>
+          </div>
+
+          <div className="form-group">
+            <label>Confirm Password *</label>
+            <input
+              type="password"
+              name="confirmPassword"
+              placeholder="Confirm your password"
+              value={formData.confirmPassword}
+              onChange={handleInputChange}
+              className={validationErrors.confirmPassword ? 'error' : ''}
+              required
+            />
+            {validationErrors.confirmPassword && <span className="field-error">{validationErrors.confirmPassword}</span>}
           </div>
 
           {error && (
@@ -106,6 +250,7 @@ const Register = () => {
               </div>
             </div>
           )}
+          
           {success && (
             <div className="response-success">
               <div className="response-icon">✓</div>
@@ -116,7 +261,7 @@ const Register = () => {
           )}
 
           <button type="submit" className="post-button" disabled={isLoading}>
-            {isLoading ? <span className="spinner"></span> : 'Register'}
+            {isLoading ? <span className="spinner"></span> : 'Create Account'}
           </button>
         </form>
 
